@@ -28,11 +28,15 @@ import sys
 import shutil
 import subprocess
 import Tkinter, tkFileDialog, tkMessageBox
+import io
     
+reload(sys)  # Reload does the trick!
+sys.setdefaultencoding('UTF8')
 
 #Initialize popups
 root = Tkinter.Tk()
 root.withdraw()
+
 
 try:
     from psd_tools import PSDImage
@@ -54,6 +58,45 @@ Robin Grob https://github.com/humveev""")
         sys.exit()
 
 
+"""
+Function Defines
+"""
+
+def export_hierarchie(i,counter):
+    print i
+    file.write(str(counter)+"\n\r")
+    try:
+        img = Image.new('RGBA',image_size,0)
+        try:
+            temp = i.compose()
+        except:
+            temp = i.as_PIL()
+        temp_bbox = i.bbox
+        print temp_bbox
+        name = 'temp_'+str(counter)+'.png'
+        try:
+            img.paste(temp,temp_bbox)
+        except:
+            name = 'error'+str(counter)+'.png'
+            return
+        temp.save(name)
+        img.save('img_'+name)
+        file.write(i.name +' '+name + ': ' + str(i.bbox) + '\n')
+    except AttributeError:
+        return
+
+def export_smartobject(smartobject,counter):
+    counter2 = 0
+    temp = io.BytesIO(smartobject.open() + "\n\r")
+    file.write(str(temp))
+    for j in list(smartobject.smart_object.data):
+        counter2 += 1
+        export_hierarchie(j,str(counter)+"_"+str(counter2))
+
+"""
+"Main"
+"""
+
 file_path = tkFileDialog.askopenfilename()
 
 print file_path
@@ -69,10 +112,10 @@ if os.path.splitext(file_name)[1] == "":
     sys.exit()
 
 try:
-    psd = PSDImage.load(file_name)
+    psd = PSDImage.open(file_name)
 except:
     try:
-        psd = PSDImage.open(file_name)
+        psd = PSDImage.load(file_name)
     except:
         tkMessageBox.showerror("Error","Wrong File! \nSELECT .PSD Try again! \n :) (r)Robin Grob")
         print("Wrong File! Try again! \n :) (r)Robin Grob (https://github.com/humveev)")
@@ -99,37 +142,30 @@ print list(psd.descendants())
 print "---------------------"
 
 try:
-    image_size=psd.as_PIL().size
+    image_size=psd.topil().size
 except:
-    image_size = psd.topil().size
+    image_size = psd.as_PIL().size
 
 print image_size
 
 file = open('whole list with bbox.txt',"a")
-
+counter = 0
 for i in list(psd.descendants()):
+    counter += 1
+    print counter
     print i
+    file.write(str(i.name) + " " + str(i.kind) + "\n\r")
     try:
-        img = Image.new('RGBA',image_size,0)
         try:
-            temp = i.as_PIL()
+            export_smartobject(i.open,counter)
+            file.write(str(Image.open(io.BytesIO(i.smart_object.data))))
         except:
-            temp = i.compose()
-        temp_bbox = i.bbox
-        print temp_bbox
-        name = 'temp_'+str(list(psd.descendants()).index(i))+'.png'
-        try:
-            img.paste(temp,temp_bbox)
-        except:
-            name = 'error'+str(list(psd.descendants()).index(i))+'.png'
-            continue
-        temp.save(name)
-        img.save('img_'+name)
-        file.write(name + ': ' + str(i.bbox) + '\n')
+            print "No Children :)"
+            export_hierarchie(i,counter)
     except AttributeError:
         continue
-
+    
 file.close()
 print os.getcwd()
-subprocess.Popen(r'explorer /select,'+str(os.getcwd())+'\\temp_0.png')
+#subprocess.Popen(r'explorer /select,'+str(os.getcwd())+'\\temp_0.png')
 sys.exit()
