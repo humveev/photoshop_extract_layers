@@ -87,7 +87,7 @@ def export_hierarchie(i,counter):
 
 def export_smartobject(smartobject,counter):
     counter2 = 0
-    temp = io.BytesIO(smartobject.open() + "\n\r")
+    temp = io.BytesIO(smartobject.open())
     file.write(str(temp))
     for j in list(smartobject.smart_object.data):
         counter2 += 1
@@ -155,15 +155,29 @@ for i in list(psd.descendants()):
     print counter
     print i
     file.write(str(i.name) + " " + str(i.kind) + "\n\r")
+#    try:
+    if i.kind == "smartobject":
+        if i.smart_object.is_psd() or i.smart_object.filetype in ('jpg', 'png','psb'):
+            file.write("i'm alive\n\r")
+            image = Image.open(io.BytesIO(i.smart_object.data))
+            image.save("__new_"+str(counter))
+        #file.write(str(Image.open(io.BytesIO(i.smart_object.data))))
+#    except:
+#        file.write("No Children :) \n\r")
+#        export_hierarchie(i,counter)
+            
+"""        
     try:
-        try:
-            export_smartobject(i.open,counter)
-            file.write(str(Image.open(io.BytesIO(i.smart_object.data))))
-        except:
-            print "No Children :)"
-            export_hierarchie(i,counter)
+        file.write("i'm alive\n\r")
+        image = Image.open(io.BytesIO(i.smart_object.data))
+        image.save("__new_"+str(counter))
+        #file.write(str(Image.open(io.BytesIO(i.smart_object.data))))
     except AttributeError:
         continue
+    except:
+        file.write("No Children :)\n\r")
+        export_hierarchie(i,counter)
+"""
     
 file.close()
 print os.getcwd()
